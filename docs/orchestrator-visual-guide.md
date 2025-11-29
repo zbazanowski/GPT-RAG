@@ -180,29 +180,6 @@ The `Orchestrator` class serves as the **conversation state manager** and **stra
 3. **State Coordination**: Ensures conversation state is properly synchronized between database and strategy
 4. **Response Streaming**: Coordinates real-time response delivery while maintaining state consistency
 
-## Collaboration Pattern
-```
-------------------------------------------------------------------
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Orchestrator  │◄──►│   CosmosDBClient │    │ AgentStrategy   │
-│                 │    │                  │    │   Factory       │
-│ - Load/Save     │    │ - get_document() │    │                 │
-│ - Stream coord. │    │ - update_doc()   │    │ - get_strategy()│
-│ - State mgmt.   │    │ - create_doc()   │    └─────────────────┘
-└─────────────────┘    └──────────────────┘              │
-         │                                               │
-         │              ┌────────────────────────────────▼──┐
-         └─────────────►│        BaseAgentStrategy          │
-                        │                                   │
-                        │ - initiate_agent_flow()           │
-                        │ - conversation (property)         │
-                        │ - user_context (property)         │
-                        └───────────────────────────────────┘
-------------------------------------------------------------------
-```
-
-
-
 ## Strategy Setup + Streaming Response Lifecycle
 
 Note the (read and update) points of conversation persistency maintenance (in green).
@@ -214,6 +191,66 @@ Note the (read and update) points of conversation persistency maintenance (in gr
 [🟥 JPG](./media/orchestrator-strategy/orchestrator-strategy.jpg)
 
 ![Orchestrator Strategy Setup and Streaming](./media/orchestrator-strategy/orchestrator-strategy.drawio.svg)
+
+## Collaboration Pattern
+
+You will have noticed the use of the Factory Design Pattern (`AgentStrategyFactory`) for the various Strategies, ensuring that all of them comply with the same `BaseAgentStrategy` interface.
+For the sake of clarity, I have abstracted away the different roles of the `Orchestrator` class and the `Orchestrator` object.
+```
+------------------------------------------------------------------
+┌────────────────────────────────────────────────────────────────┐
+│                         Orchestrator                           │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  - conversation_id: str                                  │  │
+│  │  - database_client: CosmosDBClient     <<reference>>     │  │
+│  │  - agentic_strategy: BaseAgentStrategy ───────────────┐  │  │
+│  │                                                       │  │  │
+│  │  + create()                                           │  │  │
+│  │  + stream_response()                                  │  │  │
+│  │  + save_feedback()                                    │  │  │
+│  └──────────────────────────────────────────────────────────┘  │
+└─────────────────────┬──────────────────────────────────────────┘
+                      │                                    │
+                      │ uses (delegation)                  │ 
+                      ▼                                    │
+           ┌──────────────────────┐                        │  
+           │ AgentStrategyFactory │ <<factory>>            │
+           ├──────────────────────┤                        │
+           │ + get_strategy(key)  │                        │
+           └──────────┬───────────┘                        │
+                      │                                    │
+                      │ instantiates                       │
+                      ▼                                    │
+        ┌─────────────────────────────┐                    │
+        │    BaseAgentStrategy        │ <<abstract>> ◄─────┘
+        ├─────────────────────────────┤
+        │ # strategy_type             │
+        │ # conversation: Dict        │
+        │ # user_context: Dict        │
+        │ # credential                │
+        │ # project_client            │
+        ├─────────────────────────────┤
+        │ + initiate_agent_flow()*    │ * = abstract method
+        │ # _read_prompt()            │
+        └──────────────┬──────────────┘
+                       │
+                       │ inheritance (IS-A)
+         ┌─────────────┼─────────────────────────┐
+         │             │                         │
+         ▼             ▼                         ▼
+┌────────────────┐ ┌──────────────┐  ┌─────────────────┐
+│ SingleAgent    │ │  NL2SQL      │  │  McpStrategy    │
+│ RAGStrategy    │ │  Strategy    │  │                 │
+├────────────────┤ ├──────────────┤  ├─────────────────┤
+│ - tools_list   │ │ - nl2sql     │  │ - kernel        │
+│ - ai_search    │ │   _plugin    │  │ - agent         │
+│ - event_handler│ │ - terminator │  │                 │
+├────────────────┤ ├──────────────┤  ├─────────────────┤
+│ + initiate_    │ │ + initiate_  │  │ + initiate_     │
+│   agent_flow() │ │   agent_flow │  │   agent_flow()  │
+└────────────────┘ └──────────────┘  └─────────────────┘
+------------------------------------------------------------------
+```
 
 
 ## `SingleAgentRAGStrategy` remotely controls objects in the AI Foundry
