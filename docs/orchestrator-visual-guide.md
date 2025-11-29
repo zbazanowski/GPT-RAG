@@ -96,25 +96,28 @@ Grounding Chunks
 ## Constructing and Processing the Prompt
 The Prompt is fed into the LLM model, which in turn generates the Response.
 ```
------------------------------
-Prompt = System prompt
-       + Conversation History
-       + Ask
-       + Grounding Chunks
-       + Instructions
-       + Formatting Rules
------------------------------
-   |
-   | LLM takes Prompt
-   |
-   v
-Response (LLM output)
-   |
-   | AI Foundry maintains Conversation History
-   | inside Thread objects
-   |
-   v
-Conversation grows by one Turn (Ask + Response)
+┌──────────────────────────┐
+│         Prompt           │
+├──────────────────────────┤   
+│  + System prompt         │
+│  + Conversation History  │
+│  + Ask                   │
+│  + Grounding Chunks      │
+│  + Instructions          │
+│  + Formatting Rules      │
+└────────────┬─────────────┘
+             |
+             | LLM takes Prompt
+             |
+             v
+     Response (LLM output)
+             |
+             | AI Foundry maintains Conversation History
+             | inside Thread objects
+             |
+             v
+     Conversation grows
+    by one Turn (Ask + Response)
 ```
 
 ---
@@ -342,7 +345,7 @@ I should note that the detailed diagram below is the outcome of several iterativ
 [🟦 SVG](./media/single_agent_strategy/initiate_agent_flow/initiate_agent_flow.svg) ·
 [🟨 PNG](./media/single_agent_strategy/initiate_agent_flow/initiate_agent_flow.png)
 
-![Initiate Agent Flow](./media/single_agent_strategy/initiate_agent_flow/initiate_agent_flow.svg)
+![Initiate Agent Flow](./media/single_agent_strategy/initiate_agent_flow/initiate_agent_flow.png)
 
 ## AI Foundry: What’s Really Happening Behind the Scenes
 
